@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Todo } from '../types/Todo';
 import cn from 'classnames';
 import { USER_ID } from '../api/todos';
@@ -6,7 +6,7 @@ import { USER_ID } from '../api/todos';
 type Props = {
   todos: Todo[];
   onSubmit: (todo: Omit<Todo, 'id'>) => Promise<void>;
-  setErrorMessege: (message: string) => void;
+  setErrorMessege: (messege: string) => void;
 };
 
 export const TodoHeader: React.FC<Props> = ({
@@ -14,38 +14,57 @@ export const TodoHeader: React.FC<Props> = ({
   onSubmit,
   setErrorMessege,
 }) => {
-  const [title, setTitle] = useState('');
+  const [titleTodo, setTitleTodo] = useState('');
   const [hasTitleError, setHasTitleError] = useState('');
-
   const [completed, setCompleted] = useState(false);
+  const [isSubmiting, setIsSubmiting] = useState(false);
+  const [isFocus, setIsfocus] = useState(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [isFocus]);
 
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(event.target.value);
+    setTitleTodo(event.target.value);
     setHasTitleError('');
   };
 
   const reset = () => {
-    setTitle('');
+    setTitleTodo('');
     setHasTitleError('');
-    setErrorMessege('');
+    setIsfocus(false);
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     setHasTitleError('');
+    setErrorMessege('');
+    setIsfocus(true);
 
-    if (!title.trim()) {
+    const title = titleTodo.trim();
+
+    if (!title) {
       setHasTitleError('Title should not be empty');
       setErrorMessege('Title should not be empty');
 
       return;
     }
 
+    setIsSubmiting(true);
+
     onSubmit({
       title,
       completed,
       userId: USER_ID,
-    }).then(reset);
+    })
+      .then(() => {
+        reset();
+      })
+      .finally(() => {
+        setIsSubmiting(false);
+        setIsfocus(false);
+      });
   };
 
   return (
@@ -59,17 +78,17 @@ export const TodoHeader: React.FC<Props> = ({
         })}
         data-cy="ToggleAllButton"
       />
-
       {/* Add a todo on form submit */}
       <form onSubmit={handleSubmit} onReset={reset}>
         <input
           data-cy="NewTodoField"
           type="text"
+          ref={inputRef}
           className="todoapp__new-todo"
           placeholder="What needs to be done?"
-          value={title}
+          value={titleTodo}
           onChange={handleTitleChange}
-          autoFocus
+          disabled={isSubmiting}
         />
       </form>
     </header>

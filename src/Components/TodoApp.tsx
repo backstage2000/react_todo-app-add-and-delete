@@ -9,14 +9,14 @@ import { ErrorNotification } from './ErrorNotification/ErrorNotification';
 
 export const TodoApp: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [errorMessege, setErrorMessege] = useState<string>('');
+  const [errorMessege, setErrorMessege] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [loading, setLoading] = useState(false);
+  const [tempTodo, setTempTodo] = useState<Todo | null>(null);
 
   useEffect(() => {
     setErrorMessege('');
     setLoading(true);
-
     todoService
       .getTodos()
       .then(loadingTodos => setTodos(loadingTodos))
@@ -25,7 +25,6 @@ export const TodoApp: React.FC = () => {
       })
       .finally(() => setLoading(false));
   }, []);
-
   const visibleTodos = todos.filter(todo => {
     return (
       statusFilter === 'all' ||
@@ -39,17 +38,46 @@ export const TodoApp: React.FC = () => {
     completed,
     userId,
   }: Omit<Todo, 'id'>): Promise<void> {
+    setLoading(true);
+    setErrorMessege('');
+
+    const newTemptodo: Todo = {
+      id: 0,
+      title,
+      completed,
+      userId,
+    };
+
+    setTempTodo(newTemptodo);
+
     return todoService
       .creatTodos({ title, completed, userId })
       .then(newTodo => {
         setTodos(currentTodos => [...currentTodos, newTodo]);
+        setTempTodo(null);
       })
       .catch(error => {
-        setErrorMessege(error);
+        setTempTodo(null);
+        setErrorMessege('Unable to add a todo');
+
         throw error;
       })
-      .finally(() => setErrorMessege(''));
+      .finally(() => {
+        setLoading(false);
+      });
   }
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    if (errorMessege) {
+      timer = setTimeout(() => {
+        setErrorMessege('');
+      }, 3000);
+    }
+
+    return () => clearTimeout(timer);
+  }, [errorMessege]);
 
   return (
     <>
@@ -61,7 +89,9 @@ export const TodoApp: React.FC = () => {
             onSubmit={addTodos}
             setErrorMessege={setErrorMessege}
           />
-          {todos && <TodoMain visibleTodos={visibleTodos} loading={loading} />}
+          {todos && (
+            <TodoMain visibleTodos={visibleTodos} tempTodo={tempTodo} />
+          )}
           {todos && (
             <TodoFooter setStatusFilter={setStatusFilter} todos={todos} />
           )}

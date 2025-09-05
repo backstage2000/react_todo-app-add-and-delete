@@ -11,14 +11,16 @@ export const ErrorNotification: React.FC<ErrorNotificationProps> = ({
   const [isHidden, setIsHidden] = useState(true);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
+    if (!messege) {
+      setIsHidden(true);
 
-    if (messege) {
-      setIsHidden(false);
-      timer = setTimeout(() => {
-        setIsHidden(true);
-      }, 3000);
+      return;
     }
+
+    setIsHidden(false);
+    const timer = setTimeout(() => {
+      setIsHidden(true);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [messege]);
@@ -42,13 +44,13 @@ export const ErrorNotification: React.FC<ErrorNotificationProps> = ({
       />
       {messege}
       {/* <br />
-      Title should not be empty
-      <br />
-      Unable to add a todo
-      <br />
-      Unable to delete a todo
-      <br />
-      Unable to update a todo */}
+        Title should not be empty
+        <br />
+        Unable to add a todo
+        <br />
+        Unable to delete a todo
+        <br />
+        Unable to update a todo */}
     </div>
   );
 };
