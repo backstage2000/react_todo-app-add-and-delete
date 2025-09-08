@@ -5,10 +5,16 @@ import cn from 'classnames';
 type Props = {
   setStatusFilter: (value: 'all' | 'active' | 'completed') => void;
   todos: Todo[];
+  handleClearCompleted: () => void;
 };
 
-export const TodoFooter: React.FC<Props> = ({ setStatusFilter, todos }) => {
+export const TodoFooter: React.FC<Props> = ({
+  setStatusFilter,
+  todos,
+  handleClearCompleted,
+}) => {
   const [status, setStatus] = useState<StatusFilter>('all');
+  const someCompletedTodos = todos.some(todo => todo.completed === true);
 
   const handleStatusChange = (e: StatusFilter) => {
     setStatusFilter(e);
@@ -61,10 +67,13 @@ export const TodoFooter: React.FC<Props> = ({ setStatusFilter, todos }) => {
           </nav>
 
           {/* this button should be disabled if there are no completed todos */}
+
           <button
             type="button"
             className="todoapp__clear-completed"
             data-cy="ClearCompletedButton"
+            onClick={handleClearCompleted}
+            disabled={!someCompletedTodos}
           >
             Clear completed
           </button>

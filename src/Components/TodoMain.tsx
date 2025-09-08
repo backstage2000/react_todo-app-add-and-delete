@@ -5,10 +5,12 @@ import React from 'react';
 type Props = {
   visibleTodos: Todo[];
   tempTodo: Todo | null;
+  onDelete: (id: number) => void;
+  deletingIds: Set<number>;
 };
 
 export const TodoMain: React.FC<Props> = React.memo(
-  ({ visibleTodos, tempTodo }) => {
+  ({ visibleTodos, tempTodo, onDelete, deletingIds }) => {
     return (
       <section className="todoapp__main" data-cy="TodoList">
         {visibleTodos.map(todo => (
@@ -32,11 +34,21 @@ export const TodoMain: React.FC<Props> = React.memo(
             <span data-cy="TodoTitle" className="todo__title">
               {todo.title}
             </span>
-            <button type="button" className="todo__remove" data-cy="TodoDelete">
+            <button
+              type="button"
+              className="todo__remove"
+              onClick={() => onDelete(todo.id)}
+              data-cy="TodoDelete"
+            >
               ×
             </button>
 
-            <div data-cy="TodoLoader" className="modal overlay">
+            <div
+              data-cy="TodoLoader"
+              className={cn('modal overlay', {
+                'is-active': deletingIds.has(todo.id),
+              })}
+            >
               <div className="modal-background has-background-white-ter" />
               <div className="loader" />
             </div>

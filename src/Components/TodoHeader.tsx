@@ -7,23 +7,34 @@ type Props = {
   todos: Todo[];
   onSubmit: (todo: Omit<Todo, 'id'>) => Promise<void>;
   setErrorMessege: (messege: string) => void;
+  focusInputFn: (fn: () => void) => void;
 };
 
 export const TodoHeader: React.FC<Props> = ({
   todos,
   onSubmit,
   setErrorMessege,
+  focusInputFn,
 }) => {
   const [titleTodo, setTitleTodo] = useState('');
   const [hasTitleError, setHasTitleError] = useState('');
   const [completed, setCompleted] = useState(false);
   const [isSubmiting, setIsSubmiting] = useState(false);
-  const [isFocus, setIsfocus] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [justAdded, setJustAdded] = useState(false);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, [isFocus]);
+    focusInputFn(() => {
+      inputRef.current?.focus();
+    });
+  }, [focusInputFn]);
+
+  useEffect(() => {
+    if (justAdded) {
+      inputRef.current?.focus();
+      setJustAdded(false);
+    }
+  }, [justAdded]);
 
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTitleTodo(event.target.value);
@@ -33,14 +44,12 @@ export const TodoHeader: React.FC<Props> = ({
   const reset = () => {
     setTitleTodo('');
     setHasTitleError('');
-    setIsfocus(false);
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     setHasTitleError('');
     setErrorMessege('');
-    setIsfocus(true);
 
     const title = titleTodo.trim();
 
@@ -60,10 +69,16 @@ export const TodoHeader: React.FC<Props> = ({
     })
       .then(() => {
         reset();
+        setJustAdded(true);
+      })
+      .catch(error => {
+        setErrorMessege('Unable to add a todo');
+        setJustAdded(true);
+
+        console.error(error);
       })
       .finally(() => {
         setIsSubmiting(false);
-        setIsfocus(false);
       });
   };
 

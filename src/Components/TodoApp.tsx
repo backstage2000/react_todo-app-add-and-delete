@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StatusFilter, Todo } from '../types/Todo';
 
 import * as todoService from '../api/todos';
@@ -12,19 +12,32 @@ export const TodoApp: React.FC = () => {
   const [errorMessege, setErrorMessege] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [loading, setLoading] = useState(false);
+
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
+
+  const focusInput = useRef<() => void>();
+
+  const focusInputFn = useCallback((fn: () => void) => {
+    focusInput.current = fn;
+  }, []);
 
   useEffect(() => {
     setErrorMessege('');
-    setLoading(true);
+
     todoService
       .getTodos()
-      .then(loadingTodos => setTodos(loadingTodos))
+      .then(loadingTodos => {
+        setTodos(loadingTodos);
+        setLoading(true);
+        focusInput.current?.();
+      })
       .catch(() => {
         setErrorMessege('Unable to load todos');
       })
       .finally(() => setLoading(false));
   }, []);
+
   const visibleTodos = todos.filter(todo => {
     return (
       statusFilter === 'all' ||
@@ -55,6 +68,8 @@ export const TodoApp: React.FC = () => {
       .then(newTodo => {
         setTodos(currentTodos => [...currentTodos, newTodo]);
         setTempTodo(null);
+
+        focusInput.current?.();
       })
       .catch(error => {
         setTempTodo(null);
@@ -65,6 +80,80 @@ export const TodoApp: React.FC = () => {
       .finally(() => {
         setLoading(false);
       });
+  }
+
+  function deleteTodos(id: number) {
+    setErrorMessege('');
+    setDeletingIds(prev => new Set(prev).add(id));
+
+    todoService
+      .deleteTodos(id)
+      .then(() => {
+        setTodos(todos.filter(todo => todo.id !== id));
+
+        focusInput.current?.();
+      })
+      .catch(error => {
+        setErrorMessege('Unable to delete a todo');
+        focusInput.current?.();
+
+        throw error;
+      })
+      .finally(() => {
+        setDeletingIds(prev => {
+          const next = new Set(prev);
+
+          next.delete(id);
+
+          return next;
+        });
+      });
+  }
+
+  async function handleClearCompleted() {
+    try {
+      setErrorMessege('');
+
+      const completedTodos = todos.filter(todo => todo.completed);
+
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+
+        completedTodos.forEach(t => next.add(t.id));
+
+        return next;
+      });
+
+      const results = await Promise.allSettled(
+        completedTodos.map(todo => todoService.deleteTodos(todo.id)),
+      );
+
+      const failedIds = results
+        .map((result, i) =>
+          result.status === 'rejected' ? completedTodos[i].id : null,
+        )
+        .filter(Boolean);
+
+      setTodos(currentTodos =>
+        currentTodos.filter(
+          todo => !todo.completed || failedIds.includes(todo.id),
+        ),
+      );
+
+      focusInput.current?.();
+
+      if (failedIds.length) {
+        setErrorMessege('Unable to delete a todo');
+      } else {
+        setErrorMessege('');
+      }
+
+      setDeletingIds(new Set());
+    } catch (err) {
+      setErrorMessege('Something went wrong');
+      focusInput.current?.();
+      setDeletingIds(new Set());
+    }
   }
 
   useEffect(() => {
@@ -88,12 +177,22 @@ export const TodoApp: React.FC = () => {
             todos={todos}
             onSubmit={addTodos}
             setErrorMessege={setErrorMessege}
+            focusInputFn={focusInputFn}
           />
           {todos && (
-            <TodoMain visibleTodos={visibleTodos} tempTodo={tempTodo} />
+            <TodoMain
+              visibleTodos={visibleTodos}
+              tempTodo={tempTodo}
+              onDelete={deleteTodos}
+              deletingIds={deletingIds}
+            />
           )}
           {todos && (
-            <TodoFooter setStatusFilter={setStatusFilter} todos={todos} />
+            <TodoFooter
+              setStatusFilter={setStatusFilter}
+              handleClearCompleted={handleClearCompleted}
+              todos={todos}
+            />
           )}
         </div>
         <ErrorNotification messege={errorMessege} />
