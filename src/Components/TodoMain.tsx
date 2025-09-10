@@ -1,6 +1,8 @@
 import cn from 'classnames';
 import { Todo } from '../types/Todo';
 import React from 'react';
+import '../styles/animation.scss';
+import { TransitionGroup, CSSTransition } from 'react-transition-group';
 
 type Props = {
   visibleTodos: Todo[];
@@ -13,51 +15,55 @@ export const TodoMain: React.FC<Props> = React.memo(
   ({ visibleTodos, tempTodo, onDelete, deletingIds }) => {
     return (
       <section className="todoapp__main" data-cy="TodoList">
-        {visibleTodos.map(todo => (
-          <div
-            key={todo.id}
-            data-cy="Todo"
-            className={cn('todo', {
-              completed: todo.completed,
-            })}
-          >
-            <label className="todo__status-label">
-              <input
-                data-cy="TodoStatus"
-                type="checkbox"
-                className="todo__status"
-                checked={todo.completed}
-              />
-              {}
-            </label>
+        <TransitionGroup>
+          {visibleTodos.map(todo => (
+            <CSSTransition key={todo.id} timeout={300} classNames="item">
+              <div
+                key={todo.id}
+                data-cy="Todo"
+                className={cn('todo', {
+                  completed: todo.completed,
+                })}
+              >
+                <label className="todo__status-label">
+                  <input
+                    data-cy="TodoStatus"
+                    type="checkbox"
+                    className="todo__status"
+                    checked={todo.completed}
+                  />
+                  {}
+                </label>
 
-            <span data-cy="TodoTitle" className="todo__title">
-              {todo.title}
-            </span>
-            <button
-              type="button"
-              className="todo__remove"
-              onClick={() => onDelete(todo.id)}
-              data-cy="TodoDelete"
-            >
-              ×
-            </button>
+                <span data-cy="TodoTitle" className="todo__title">
+                  {todo.title}
+                </span>
+                <button
+                  type="button"
+                  className="todo__remove"
+                  onClick={() => onDelete(todo.id)}
+                  data-cy="TodoDelete"
+                >
+                  ×
+                </button>
 
-            <div
-              data-cy="TodoLoader"
-              className={cn('modal overlay', {
-                'is-active': deletingIds.has(todo.id),
-              })}
-            >
-              <div className="modal-background has-background-white-ter" />
-              <div className="loader" />
-            </div>
-          </div>
-        ))}
+                <div
+                  data-cy="TodoLoader"
+                  className={cn('modal overlay', {
+                    'is-active': deletingIds.has(todo.id),
+                  })}
+                >
+                  <div className="modal-background has-background-white-ter" />
+                  <div className="loader" />
+                </div>
+              </div>
+            </CSSTransition>
+          ))}
+        </TransitionGroup>
 
         {tempTodo && (
           <div
-            key="temp"
+            key={tempTodo.id}
             data-cy="Todo"
             className={cn('todo', {
               completed: tempTodo.completed,

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Todo } from '../types/Todo';
 import cn from 'classnames';
 import { USER_ID } from '../api/todos';
+import { MessageError } from '../types/Todo';
 
 type Props = {
   todos: Todo[];
@@ -17,8 +18,7 @@ export const TodoHeader: React.FC<Props> = ({
   focusInputFn,
 }) => {
   const [titleTodo, setTitleTodo] = useState('');
-  const [hasTitleError, setHasTitleError] = useState('');
-  const [completed, setCompleted] = useState(false);
+
   const [isSubmiting, setIsSubmiting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [justAdded, setJustAdded] = useState(false);
@@ -38,24 +38,21 @@ export const TodoHeader: React.FC<Props> = ({
 
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTitleTodo(event.target.value);
-    setHasTitleError('');
   };
 
   const reset = () => {
     setTitleTodo('');
-    setHasTitleError('');
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setHasTitleError('');
+
     setErrorMessege('');
 
     const title = titleTodo.trim();
 
     if (!title) {
-      setHasTitleError('Title should not be empty');
-      setErrorMessege('Title should not be empty');
+      setErrorMessege(MessageError.title);
 
       return;
     }
@@ -64,18 +61,16 @@ export const TodoHeader: React.FC<Props> = ({
 
     onSubmit({
       title,
-      completed,
+      completed: false,
       userId: USER_ID,
     })
       .then(() => {
         reset();
         setJustAdded(true);
       })
-      .catch(error => {
-        setErrorMessege('Unable to add a todo');
+      .catch(() => {
+        setErrorMessege(MessageError.add);
         setJustAdded(true);
-
-        console.error(error);
       })
       .finally(() => {
         setIsSubmiting(false);
